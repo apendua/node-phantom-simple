@@ -48,10 +48,7 @@ function include_js (res, page, args) {
 }
 
 function send_callback(page_id, cb_name, args) {
-	//system.stdout.writeLine(cb_name + args.toString());
-	//console.log('CALLING', cb_name);
-	//console.log('->', JSON.stringify({'page_id': page_id, 'callback': cb_name, 'args': args}));
-	system.stdout.writeLine('JSON ' + JSON.stringify({'page_id': page_id, 'callback': cb_name, 'args': args}));
+	system.stdout.write('JSON ' + JSON.stringify({'page_id': page_id, 'callback': cb_name, 'args': args}) + '\n');
 }
 
 var service = webserver.listen('127.0.0.1:0', function (req, res) {

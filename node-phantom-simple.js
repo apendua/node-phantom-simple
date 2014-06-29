@@ -359,15 +359,17 @@ exports.create = function (callback, options) {
 
         // callback listener
         phantom.stdout.on('data', function (data) {
-            var match = /^JSON\s*(.*)/.exec(data.toString());
-            if (match) { // this is probably a callback
-                try {
-                    data = JSON.parse(match[1]);
-                    processCallback(data, phantom, pages, setup_new_page);
-                } catch (err) {} // ignore errors
-            } else {
-                console.log('phantom stdout: ' + data.toString());
-            }
+            var lines = data.toString().split('\n');
+            lines.forEach(function (line) {
+                var match = /^JSON\s*(.*)/.exec(line);
+                if (match) { // this is probably a callback
+                    try {
+                        processCallback(JSON.parse(match[1]), phantom, pages, setup_new_page);
+                    } catch (err) {} // ignore errors
+                } else if (line) { // ignore empty lines
+                    console.log('phantom stdout: ' + line);
+                }
+            });
         });
 
         var proxy = {
