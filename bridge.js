@@ -5,8 +5,6 @@ var system      = require('system');
 var pages  = {};
 var page_id = 1;
 
-var callback_stack = [];
-
 phantom.onError = function (msg, trace) {
 	var msgStack = ['PHANTOM ERROR: ' + msg];
 	if (trace && trace.length) {
@@ -49,18 +47,16 @@ function include_js (res, page, args) {
 	}));
 }
 
+function send_callback(page_id, cb_name, args) {
+	//system.stdout.writeLine(cb_name + args.toString());
+	//console.log('CALLING', cb_name);
+	//console.log('->', JSON.stringify({'page_id': page_id, 'callback': cb_name, 'args': args}));
+	system.stdout.writeLine('JSON ' + JSON.stringify({'page_id': page_id, 'callback': cb_name, 'args': args}));
+}
+
 var service = webserver.listen('127.0.0.1:0', function (req, res) {
 	// console.log("Got a request of type: " + req.method);
-	if (req.method === 'GET') {
-		res.statusCode = 200;
-		res.setHeader('Content-Type', 'application/json');
-		// console.log("Sending back " + callback_stack.length + " callbacks");
-		res.write(JSON.stringify(callback_stack));
-		callback_stack = [];
-		// console.log("Close3");
-		res.close();
-	}
-	else if (req.method === 'POST') {
+	if (req.method === 'POST') {
 		var request = JSON.parse(req.post);
 		var method  = request.method;
 		var output  = null;
@@ -119,16 +115,17 @@ function setup_callbacks (id, page) {
         page[cb] = function (parm) {
             var args = Array.prototype.slice.call(arguments);
             if ((cb==='onResourceRequested') && (parm.url.indexOf('data:image') === 0)) return;
-            // console.log("Callback: " + cb);
-            if (cb==='onClosing') { args = [] };
-            callback_stack.push({'page_id': id, 'callback': cb, 'args': args});
-	        // console.log("Callback stack size now: " + callback_stack.length);
+            if (cb === 'onClosing') { args = [] };
+            if (cb === 'onResourceRequested') {
+              args.pop(); // the last argument cannot be JSON.stringified
+            }
+            send_callback(id, cb, args);
         };
 	});
 	// Special case this
 	page.onPageCreated = function (page) {
 		var new_id = setup_page(page);
-		callback_stack.push({'page_id': id, 'callback': 'onPageCreated', 'args': [new_id]})
+		send_callback(id, 'onPageCreated', [new_id]);
 	}
 }
 
