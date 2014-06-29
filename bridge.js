@@ -1,3 +1,4 @@
+var port        = phantom.args[0];
 var webpage     = require('webpage');
 var webserver   = require('webserver').create();
 var system      = require('system');
@@ -15,6 +16,32 @@ phantom.onError = function (msg, trace) {
 	}
 	system.stderr.writeLine(msgStack.join('\n'));
 	phantom.exit(1);
+}
+
+function lookup(obj, key, value) {
+	// key can be either string or an array of strings
+	if (!(typeof obj === 'object')) {
+		return;
+	}
+	if (typeof key === 'string') {
+		key = key.split('.');
+	}
+	if (!Array.isArray(key)) {
+		return;
+	}
+	if (arguments.length > 2) {
+		if (key.length === 1) {
+			return obj[key[0]] = value;
+		} else {
+			return lookup(obj[key[0]], key.slice(1), value);
+		}
+	} else {
+		if (key.length === 1) {
+			return obj[key[0]];
+		} else {
+			return lookup(obj[key[0]], key.slice(1));
+		}
+	}
 }
 
 function page_open (res, page, args) {
@@ -51,7 +78,7 @@ function send_callback(page_id, cb_name, args) {
 	system.stdout.write('JSON ' + JSON.stringify({'page_id': page_id, 'callback': cb_name, 'args': args}) + '\n');
 }
 
-var service = webserver.listen('127.0.0.1:0', function (req, res) {
+var service = webserver.listen('127.0.0.1:' + port, function (req, res) {
 	// console.log("Got a request of type: " + req.method);
 	if (req.method === 'POST') {
 		var request = JSON.parse(req.post);
@@ -129,10 +156,10 @@ function setup_callbacks (id, page) {
 function setup_page (page) {
 	var id    = page_id++;
 	page.getProperty = function (prop) {
-		return page[prop];
+		return lookup(page, prop);
 	}
 	page.setProperty = function (prop, val) {
-		return page[prop] = val;
+		return lookup(page, prop, val);
 	}
 	page.setFunction = function (name, fn) {
 		page[name] = eval('(' + fn + ')');
