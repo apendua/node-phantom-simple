@@ -159,7 +159,8 @@ function setup_page (page) {
 		return lookup(page, prop);
 	}
 	page.setProperty = function (prop, val) {
-		return lookup(page, prop, val);
+		lookup(page, prop, val);
+		return true;
 	}
 	page.setFunction = function (name, fn) {
 		page[name] = eval('(' + fn + ')');
@@ -198,11 +199,11 @@ var global_methods = {
 	},
 
 	getProperty: function (prop) {
-		return phantom[prop];
+		return lookup(phantom, prop);
 	},
 
 	setProperty: function (prop, value) {
-		phantom[prop] = value;
+		lookup(phantom, prop, value);
 		return true;
 	},
 }
