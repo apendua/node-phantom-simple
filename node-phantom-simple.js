@@ -1,11 +1,10 @@
 "use strict";
 
 var http            = require('http');
-var spawn 			= require('child_process').spawn;
+var spawn           = require('child_process').spawn;
 var exec            = require('child_process').exec;
 var util            = require('util');
-
-var POLL_INTERVAL   = process.env.POLL_INTERVAL || 500;
+var events          = require('events');
 
 function getRandomPort () {
   return Math.ceil(Math.random() * 20000) + 10000;
@@ -183,35 +182,6 @@ exports.create = function (callback, options) {
                     }
                     request_queue.push([[id, 'evaluate', fn.toString()].concat(extra_args), callbackOrDummy(cb)]);
                 },
-                waitForSelector: function (selector, cb, timeout) {
-                    var startTime = Date.now();
-                    var timeoutInterval = 150;
-                    var testRunning = false;
-                    //if evaluate succeeds, invokes callback w/ true, if timeout,
-                    // invokes w/ false, otherwise just exits
-                    var testForSelector = function () {
-                        var elapsedTime = Date.now() - startTime;
-
-                        if (elapsedTime > timeout) {
-                            return cb("Timeout waiting for selector: " + selector);
-                        }
-
-                        page.evaluate(function (selector) {
-                            return document.querySelectorAll(selector).length;
-                        }, function (result) {
-                            testRunning = false;
-                            if (result > 0) {//selector found
-                                cb();
-                            }
-                            else {
-                                setTimeout(testForSelector, timeoutInterval);
-                            }
-                        }, selector);
-                    };
-
-                    timeout = timeout || 10000; //default timeout is 10 sec;
-                    setTimeout(testForSelector, timeoutInterval);
-                },
             };
             methods.forEach(function (method) {
                 page[method] = function () {
@@ -227,7 +197,7 @@ exports.create = function (callback, options) {
 
             pages[id] = page;
 
-            return page;            
+            return page;
         }
 
         var request_queue = queue(function (paramarr, next) {
