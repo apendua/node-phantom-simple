@@ -164,25 +164,27 @@ exports.create = function (callback, options) {
                 'switchToFrame', 'switchToChildFrame', 'switchToChildFrame', 'switchToMainFrame',
                 'switchToParentFrame', 'uploadFile',
             ];
-            var page = {
-                setFn: function (name, fn, cb) {
-                    request_queue.push([[id, 'setFunction', name, fn.toString()], callbackOrDummy(cb)]);
-                },
-                get: function (name, cb) {
-                    request_queue.push([[id, 'getProperty', name], callbackOrDummy(cb)]);
-                },
-                set: function (name, val, cb) {
-                    request_queue.push([[id, 'setProperty', name, val], callbackOrDummy(cb)]);
-                },
-                evaluate: function (fn, cb) {
-                    var extra_args = [];
-                    if (arguments.length > 2) {
-                        extra_args = Array.prototype.slice.call(arguments, 2);
-                        // console.log("Extra args: " + extra_args);
-                    }
-                    request_queue.push([[id, 'evaluate', fn.toString()].concat(extra_args), callbackOrDummy(cb)]);
-                },
+
+            var page = new events.EventEmitter();
+
+            page.setFn = function (name, fn, cb) {
+                request_queue.push([[id, 'setFunction', name, fn.toString()], callbackOrDummy(cb)]);
             };
+            page.get = function (name, cb) {
+                request_queue.push([[id, 'getProperty', name], callbackOrDummy(cb)]);
+            };
+            page.set = function (name, val, cb) {
+                request_queue.push([[id, 'setProperty', name, val], callbackOrDummy(cb)]);
+            };
+            page.evaluate = function (fn, cb) {
+                var extra_args = [];
+                if (arguments.length > 2) {
+                    extra_args = Array.prototype.slice.call(arguments, 2);
+                    // console.log("Extra args: " + extra_args);
+                }
+                request_queue.push([[id, 'evaluate', fn.toString()].concat(extra_args), callbackOrDummy(cb)]);
+            };
+
             methods.forEach(function (method) {
                 page[method] = function () {
                     var all_args = Array.prototype.slice.call(arguments);
