@@ -269,20 +269,35 @@ exports.create = function (callback, options) {
         });
 
         // callback listener
-        phantom.stdout.on('data', function (data) {
-            var lines = data.toString().split('\n');
-            lines.forEach(function (line) {
-                var match = /^JSON\s*(.*)/.exec(line);
-                if (match) { // this is probably a callback
-                    try {
-                        processCallback(JSON.parse(match[1]), phantom, pages, setup_new_page);
-                    } catch (err) {} // ignore errors
-                } else if (line) { // ignore empty lines
-                    console.log('phantom stdout: ' + line);
-                }
-            });
-        });
+        var regexp = /^\s*JSON\s*(.*)$/m;
+        var data = '';
 
+        phantom.stdout.on('data', function (chunk) {
+            var hasError = false, jsonData = null, match = null;
+            //--------------------------------------------------
+            data += chunk.toString();
+            do {
+                match = regexp.exec(data);
+                if (match) {
+                    try {
+                        jsonData = JSON.parse(match[1]);
+                    } catch (err) {
+                        // we need to wait for another chunk
+                        hasError = true;
+                    }
+                    if (!hasError) {
+                        processCallback(jsonData, phantom, pages, setup_new_page);
+                        data = data.slice(match.index + match[0].length); // move forward
+                    }
+                } else {
+                    if (!/^\s*$/.test(data)) { // ignore white spaces
+                        console.log('phantom stdout:', data.length, data);
+                    }
+                    data = '';
+                }
+            } while (match && !hasError);
+        });
+        
         var proxy = {
             process: phantom,
             createPage: function (callback) {
